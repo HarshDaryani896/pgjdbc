@@ -1434,6 +1434,25 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
   }
 
+  /**
+   *
+   * @return the class name to use for the Load Balancer Plugin.
+   *         This can be null in which case the default load balancer plugin will be used
+   */
+  public @Nullable String getLaadBalancerPluginClass() {
+    return PGProperty.LOAD_BALANCER_PLUGIN_CLASS.get(properties);
+  }
+
+  /**
+   *
+   * @param className name of a class which implements {@link org.postgresql.plugin.LoadBalancerPlugin}
+   *                  This class will be used to get make connection to the database
+   *
+   */
+  public void setLaadBalancerPluginClass(String className) {
+    PGProperty.LOAD_BALANCER_PLUGIN_CLASS.set(properties, className);
+  }
+
   public @Nullable String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {

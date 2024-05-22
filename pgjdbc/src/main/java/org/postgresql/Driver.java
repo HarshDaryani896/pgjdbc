@@ -19,6 +19,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
+import org.postgresql.core.LoadBalancerManager;
+import org.postgresql.plugin.LoadBalancerPlugin;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -66,7 +68,7 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
-  public static LoadBalancer LOAD_BALANCER_CLASS;
+  public static LoadBalancerPlugin LOAD_BALANCER_CLASS;
 
   static {
     try {
@@ -282,7 +284,7 @@ public class Driver implements java.sql.Driver {
           GT.tr("Unable to parse URL {0}", url),
           PSQLState.UNEXPECTED_ERROR);
     }
-    LOAD_BALANCER_CLASS = setloadbalancer(props);
+    LOAD_BALANCER_CLASS = LoadBalancerManager.getLoadBalancerPlugin(props);
     try {
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
@@ -757,21 +759,6 @@ public class Driver implements java.sql.Driver {
     Driver registeredDriver = new Driver();
     DriverManager.registerDriver(registeredDriver);
     Driver.registeredDriver = registeredDriver;
-  }
-
-  public static LoadBalancer setloadbalancer(Properties props) throws SQLException {
-    try {
-      String load_balancer = PGProperty.LOAD_BALANCER_PLUGIN_CLASS.get(props);
-      if (load_balancer != null){
-        System.out.println("Using "+load_balancer);       
-        return (LoadBalancer) Class.forName(load_balancer).getConstructor().newInstance();
-      } else {
-        return new DefaultLoadBalancer();
-      }
-    } catch (Exception e) {
-      System.out.println("Using stock loadbalance");
-      return new DefaultLoadBalancer();
-    }
   }
 
   /**

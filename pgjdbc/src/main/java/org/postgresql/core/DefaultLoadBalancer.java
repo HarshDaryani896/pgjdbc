@@ -1,32 +1,41 @@
-package org.postgresql;
+package org.postgresql.core;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.jdbc.PgConnection;
+import static org.postgresql.Driver.*;
+import org.postgresql.plugin.LoadBalancerPlugin;
 
 /**
- * An interface to implement a custom load balancer. 
+ * Default load balancer implements the stock driver behaviour. 
  */
-public interface LoadBalancer {
+public class DefaultLoadBalancer implements LoadBalancerPlugin{
 
  /**
    * Create a connection from URL and properties.
    * connect() invokes this implemented method while processing a new connection request.
-   * 
+   *
    * @param url the original URL
    * @param properties the parsed/defaulted connection properties
    * @return a new connection
    * @throws SQLException if the connection could not be made
    */
-    Connection makeConnection(String url, Properties properties) throws SQLException;
-
+    @Override
+    public Connection makeConnection(String url, Properties properties) throws SQLException {
+        return new PgConnection(hostSpecs(properties), properties, url);
+    }
+    
   /**
    * Method for updating connection info if required for load-balancing.
    * PgConnection.close() invokes this implemented method after the connection is closed.
+   * no-op for stock driver behaviour
    * 
    */
-  public void closeConnection(QueryExecutor queryExecutor) throws SQLException;
-
+  @Override
+  public void closeConnection(QueryExecutor queryExecutor) throws SQLException {
+    //no-op
+  }
 }
