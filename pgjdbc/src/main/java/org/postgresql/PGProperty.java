@@ -66,6 +66,11 @@ public enum PGProperty {
       "false",
       "Allow for changes in client_encoding"),
 
+  LOAD_BALANCER_PLUGIN_CLASS(
+       "loadbalancerpluginclass",
+       null,
+       "Class name of the custom load balancer, class should implement LoadBalancer interface"),
+
   /**
    * The application name (require server version &gt;= 9.0).
    */

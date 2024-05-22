@@ -66,6 +66,7 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
+  public static LoadBalancer LOAD_BALANCER_CLASS;
 
   static {
     try {
@@ -281,6 +282,7 @@ public class Driver implements java.sql.Driver {
           GT.tr("Unable to parse URL {0}", url),
           PSQLState.UNEXPECTED_ERROR);
     }
+    LOAD_BALANCER_CLASS = setloadbalancer(props);
     try {
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
@@ -295,7 +297,7 @@ public class Driver implements java.sql.Driver {
       // more details.
       long timeout = timeout(props);
       if (timeout <= 0) {
-        return makeConnection(url, props);
+        return LOAD_BALANCER_CLASS.makeConnection(url, props);
       }
 
       ConnectThread ct = new ConnectThread(url, props);
@@ -352,7 +354,7 @@ public class Driver implements java.sql.Driver {
       Throwable error;
 
       try {
-        conn = makeConnection(url, props);
+        conn = LOAD_BALANCER_CLASS.makeConnection(url, props);
         error = null;
       } catch (Throwable t) {
         conn = null;
@@ -431,19 +433,6 @@ public class Driver implements java.sql.Driver {
     private @Nullable Connection result;
     private @Nullable Throwable resultException;
     private boolean abandoned;
-  }
-
-  /**
-   * Create a connection from URL and properties. Always does the connection work in the current
-   * thread without enforcing a timeout, regardless of any timeout specified in the properties.
-   *
-   * @param url the original URL
-   * @param props the parsed/defaulted connection properties
-   * @return a new connection
-   * @throws SQLException if the connection could not be made
-   */
-  private static Connection makeConnection(String url, Properties props) throws SQLException {
-    return new PgConnection(hostSpecs(props), props, url);
   }
 
   /**
@@ -699,7 +688,7 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the address portion of the URL
    */
-  private static HostSpec[] hostSpecs(Properties props) {
+  public static HostSpec[] hostSpecs(Properties props) {
     String[] hosts = castNonNull(PGProperty.PG_HOST.getOrDefault(props)).split(",");
     String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
@@ -768,6 +757,21 @@ public class Driver implements java.sql.Driver {
     Driver registeredDriver = new Driver();
     DriverManager.registerDriver(registeredDriver);
     Driver.registeredDriver = registeredDriver;
+  }
+
+  public static LoadBalancer setloadbalancer(Properties props) throws SQLException {
+    try {
+      String load_balancer = PGProperty.LOAD_BALANCER_PLUGIN_CLASS.get(props);
+      if (load_balancer != null){
+        System.out.println("Using "+load_balancer);       
+        return (LoadBalancer) Class.forName(load_balancer).getConstructor().newInstance();
+      } else {
+        return new DefaultLoadBalancer();
+      }
+    } catch (Exception e) {
+      System.out.println("Using stock loadbalance");
+      return new DefaultLoadBalancer();
+    }
   }
 
   /**

@@ -865,6 +865,7 @@ public class PgConnection implements BaseConnection {
     openStackTrace = null;
     try {
       cleanable.clean();
+      Driver.LOAD_BALANCER_CLASS.closeConnection(queryExecutor);
     } catch (IOException e) {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),
